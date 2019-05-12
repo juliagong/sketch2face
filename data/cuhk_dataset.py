@@ -29,11 +29,11 @@ class CuhkDataset(BaseDataset):
             the modified parser.
         """
         parser.add_argument('--max_rotation', type=float, default=10.0, help='max rotation for augmentation')
-        parser.add_argument('--min_crop_scale', type=float, default=0.5, help='min crop scaling for augmentation')
+        parser.add_argument('--min_crop_scale', type=float, default=0.8, help='min crop scaling for augmentation')
         parser.add_argument('--max_crop_scale', type=float, default=1.0, help='max crop scaling for augmentation')
-        parser.add_argument('--scale_height', type=int, default=250, help='output height after rrc')
-        parser.add_argument('--scale_width', type=int, default=200, help='output width after rrc')
-        parser.set_defaults(preprocess='rrc_rotate')  # specify dataset-specific default values
+        # parser.add_argument('--crop_height', type=int, default=256, help='output height after rrc')
+        # parser.add_argument('--crop_width', type=int, default=200, help='output width after rrc')
+        # parser.set_defaults(preprocess='rrc_rotate')  # specify dataset-specific default values
         return parser
 
 
@@ -115,8 +115,8 @@ class CuhkDataset(BaseDataset):
         photo = Image.open(photo_path).convert('RGB')             # needs to be a tensor
 
         transform_params = get_params(self.opt, sketch.size)
-        sketch_transform = get_transform_for_augmentation(self.opt, transform_params, grayscale=(self.input_nc == 1))
-        photo_transform = get_transform_for_augmentation(self.opt, transform_params, grayscale=(self.output_nc == 1))
+        sketch_transform = get_transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
+        photo_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
 
         sketch = sketch_transform(sketch)
         photo = photo_transform(photo)
@@ -134,6 +134,12 @@ def get_transform_for_augmentation(opt, params=None, grayscale=False, method=Ima
     if 'rrc' in opt.preprocess:
         transform_list.append(transforms.RandomResizedCrop(opt.crop_size, scale=(opt.min_crop_scale, opt.max_crop_scale)))
         # transform_list.append(transforms.RandomResizedCrop((opt.scale_width, opt.scale_height), scale=(opt.min_crop_scale, opt.max_crop_scale)))
+    else:
+        if 'scale_width' in opt.preprocess:
+            transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, method)))
+        if 'crop' in opt.preprocess:
+            transform_list.append(transforms.RandomCrop(opt.crop_size))
+
     if 'rotate' in opt.preprocess:
         transform_list.append(transforms.RandomRotation(opt.max_rotation, method))
 
@@ -144,3 +150,12 @@ def get_transform_for_augmentation(opt, params=None, grayscale=False, method=Ima
         else:
             transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     return transforms.Compose(transform_list)
+
+
+def __scale_width(img, target_width, method=Image.BICUBIC):
+    ow, oh = img.size
+    if (ow == target_width):
+        return img
+    w = target_width
+    h = int(target_width * oh / ow)
+    return img.resize((w, h), method)
