@@ -10,6 +10,7 @@ We need to implement the following functions:
 """
 import os.path
 from data.base_dataset import BaseDataset, get_transform, get_params
+import torchvision.transforms as transforms
 from PIL import Image
 import re
 
@@ -27,8 +28,12 @@ class CuhkDataset(BaseDataset):
         Returns:
             the modified parser.
         """
-        # parser.add_argument('--new_dataset_option', type=float, default=1.0, help='new dataset option')
-        # parser.set_defaults(max_dataset_size=10, new_dataset_option=2.0)  # specify dataset-specific default values
+        parser.add_argument('--max_rotation', type=float, default=10.0, help='max rotation for augmentation')
+        parser.add_argument('--min_crop_scale', type=float, default=0.5, help='min crop scaling for augmentation')
+        parser.add_argument('--max_crop_scale', type=float, default=1.0, help='max crop scaling for augmentation')
+        parser.add_argument('--scale_height', type=int, default=250, help='output height after rrc')
+        parser.add_argument('--scale_width', type=int, default=200, help='output width after rrc')
+        parser.set_defaults(preprocess='rrc_rotate')  # specify dataset-specific default values
         return parser
 
 
@@ -88,8 +93,8 @@ class CuhkDataset(BaseDataset):
         # define the default transform function. We can use <base_dataset.get_transform>, or we can define our own custom transform function
         # self.transform = get_transform(opt)
 
-        self.input_nc = self.opt.output_nc if self.opt.direction == 'photo2sketch' else self.opt.input_nc
-        self.output_nc = self.opt.input_nc if self.opt.direction == 'photo2sketch' else self.opt.output_nc
+        self.input_nc = 3 # if self.opt.direction == 'photo2sketch' else 1 # TODO: put this back in and get it working
+        self.output_nc = 3 #1 if self.opt.direction == 'photo2sketch' else 3
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -106,12 +111,12 @@ class CuhkDataset(BaseDataset):
         Step 4: return a data point as a dictionary.
         """
         sketch_path, photo_path = self.image_pair_paths[index]    # supposed to be strings
-        sketch = Image.open(sketch_path).convert('RGB')           # needs to be a tensor
+        sketch = Image.open(sketch_path).convert('RGB')           # needs to be a tensor (TODO: should be 'L' not 'RGB', but need to debug why that breaks)
         photo = Image.open(photo_path).convert('RGB')             # needs to be a tensor
 
         transform_params = get_params(self.opt, sketch.size)
-        sketch_transform = get_transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
-        photo_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
+        sketch_transform = get_transform_for_augmentation(self.opt, transform_params, grayscale=(self.input_nc == 1))
+        photo_transform = get_transform_for_augmentation(self.opt, transform_params, grayscale=(self.output_nc == 1))
 
         sketch = sketch_transform(sketch)
         photo = photo_transform(photo)
@@ -121,3 +126,21 @@ class CuhkDataset(BaseDataset):
     def __len__(self):
         """Return the total number of images."""
         return len(self.image_pair_paths)
+
+def get_transform_for_augmentation(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
+    transform_list = []
+    if grayscale:
+        transform_list.append(transforms.Grayscale(1))
+    if 'rrc' in opt.preprocess:
+        transform_list.append(transforms.RandomResizedCrop(opt.crop_size, scale=(opt.min_crop_scale, opt.max_crop_scale)))
+        # transform_list.append(transforms.RandomResizedCrop((opt.scale_width, opt.scale_height), scale=(opt.min_crop_scale, opt.max_crop_scale)))
+    if 'rotate' in opt.preprocess:
+        transform_list.append(transforms.RandomRotation(opt.max_rotation, method))
+
+    if convert:
+        transform_list += [transforms.ToTensor()]
+        if grayscale:
+            transform_list += [transforms.Normalize((0.5,), (0.5,))]
+        else:
+            transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    return transforms.Compose(transform_list)
