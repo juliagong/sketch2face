@@ -1,0 +1,4 @@
+================ Training Loss (Sun May 12 01:07:18 2019) ================
+================ Training Loss (Sun May 12 01:09:17 2019) ================
+(epoch: 1, iters: 100, time: 2.438, data: 0.202) G_GAN: 2.395 G_L1: 33.302 D_real: 0.829 D_fake: 0.502 
+(epoch: 1, iters: 200, time: 2.647, data: 0.001) G_GAN: 2.310 G_L1: 41.076 D_real: 0.084 D_fake: 0.442 
