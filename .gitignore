@@ -1,0 +1,3 @@
+# do not publish IIIT-D and ColorFERET datasets
+datasets/iiitd
+datasets/colorferet
