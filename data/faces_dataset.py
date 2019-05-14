@@ -82,15 +82,12 @@ class FacesDataset(BaseDataset):
         """
         # save the option and dataset root
         BaseDataset.__init__(self, opt)
-        self.dir_images = os.path.join(opt.dataroot, opt.phase, opt.cuhk_dir) # get the image directory (eg ./datasets/CUHK/train)
-        self.image_pair_paths = sorted(FacesDataset.make_cuhk_pairs_dataset(self.dir_images, opt.max_dataset_size))
+        self.dir_cuhk_images = os.path.join(opt.dataroot, opt.phase, opt.cuhk_dir) # get the image directory (eg ./datasets/CUHK/train)
+        self.image_pair_paths = sorted(FacesDataset.make_cuhk_pairs_dataset(self.dir_cuhk_images, opt.max_dataset_size))
         # assert(self.opt.load_size >= self.opt.crop_size)
 
-        # define the default transform function. We can use <base_dataset.get_transform>, or we can define our own custom transform function
-        # self.transform = get_transform(opt)
-
         self.input_nc = 3 # if self.opt.direction == 'photo2sketch' else 1 # TODO: put this back in and get it working
-        self.output_nc = 3 #1 if self.opt.direction == 'photo2sketch' else 3
+        self.output_nc = 3 # 1 if self.opt.direction == 'photo2sketch' else 3
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -122,36 +119,3 @@ class FacesDataset(BaseDataset):
     def __len__(self):
         """Return the total number of images."""
         return len(self.image_pair_paths)
-
-def get_transform_for_augmentation(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
-    transform_list = []
-    if grayscale:
-        transform_list.append(transforms.Grayscale(1))
-    if 'rrc' in opt.preprocess:
-        transform_list.append(transforms.RandomResizedCrop(opt.crop_size, scale=(opt.min_crop_scale, opt.max_crop_scale)))
-        # transform_list.append(transforms.RandomResizedCrop((opt.scale_width, opt.scale_height), scale=(opt.min_crop_scale, opt.max_crop_scale)))
-    else:
-        if 'scale_width' in opt.preprocess:
-            transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, method)))
-        if 'crop' in opt.preprocess:
-            transform_list.append(transforms.RandomCrop(opt.crop_size))
-
-    if 'rotate' in opt.preprocess:
-        transform_list.append(transforms.RandomRotation(opt.max_rotation, method))
-
-    if convert:
-        transform_list += [transforms.ToTensor()]
-        if grayscale:
-            transform_list += [transforms.Normalize((0.5,), (0.5,))]
-        else:
-            transform_list += [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    return transforms.Compose(transform_list)
-
-
-def __scale_width(img, target_width, method=Image.BICUBIC):
-    ow, oh = img.size
-    if (ow == target_width):
-        return img
-    w = target_width
-    h = int(target_width * oh / ow)
-    return img.resize((w, h), method)
