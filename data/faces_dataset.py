@@ -1,6 +1,6 @@
 """Dataset class template
 
-We can specify '--dataset_mode cuhk' to use this dataset.
+We can specify '--dataset_mode faces' to use this dataset.
 The class name needs to stay <Dataset_mode>Dataset.py
 We need to implement the following functions:
     -- <modify_commandline_options>:　Add dataset-specific options and rewrite default values for existing options.
@@ -28,8 +28,8 @@ class FacesDataset(BaseDataset):
         Returns:
             the modified parser.
         """
-        parser.add_argument('--cuhk_dir', type=str, default='cuhk' help='Sub-directory with cuhk files')
-        parser.add_argument('--iitd_dir', type=str, default='fill me in', help='Directory with iitd files')
+        parser.add_argument('--cuhk_dir', type=str, default='cuhk', help='Sub-directory with cuhk files')
+        parser.add_argument('--iiitd_dir', type=str, default='fill me in', help='Directory with iiitd files')
         return parser
 
 
@@ -42,7 +42,7 @@ class FacesDataset(BaseDataset):
         pic_regex = r'(\w-[^a-z]*)\.jpg'
         sketch_paths = {}
         pic_paths = {}
-        import pdb; pdb.set_trace()
+
         for root, _, fnames in sorted(os.walk(dir)):
             for fname in fnames:
                 path = os.path.join(root, fname)
@@ -69,6 +69,54 @@ class FacesDataset(BaseDataset):
                     pic_paths[key] = path
         return image_pairs[:min(max_dataset_size, len(image_pairs))]
 
+    def make_iiitd_pairs_dataset(dir, max_dataset_size=float("inf")):
+        image_pairs = []
+        assert os.path.isdir(dir), '%s is not a valid directory' % dir
+
+        sketch_paths = {}
+        pic_paths = {}
+
+        for root, dirs, files in sorted(os.walk(dir)):
+            for f in files:
+                path = os.path.join(root, f)
+
+                if 'semi-forensic' in path:
+                    key = 'semi-forensic' + f.lower()
+                    if 'sketch' in path:
+                        if key in pic_paths:
+                            pic_path = pic_paths[key]
+                            image_pairs.append((path, pic_path))
+                            del pic_paths[key]
+                            continue
+                        sketch_paths[key] = path
+                        continue
+                    else:
+                        if key in sketch_paths:
+                            sketch_path = sketch_paths[key]
+                            image_pairs.append((sketch_path, path))
+                            del sketch_paths[key]
+                            continue
+                        pic_paths[key] = path
+                elif 'viewed' in path:
+                    if 'sketch' in path:
+                        key = 'viewed' + f[1:].lower() if f[0] == 's' else 'viewed' + f.lower()
+                        if key in pic_paths:
+                            pic_path = pic_paths[key]
+                            image_pairs.append((path, pic_path))
+                            del pic_paths[key]
+                            continue
+                        sketch_paths[key] = path
+                        continue
+                    else:
+                        key = 'viewed' + f[1:].lower() if f[0] == 'p' else 'viewed' + f.lower()
+                        if key in sketch_paths:
+                            sketch_path = sketch_paths[key]
+                            image_pairs.append((sketch_path, path))
+                            del sketch_paths[key]
+                            continue
+                        pic_paths[key] = path
+        return image_pairs[:min(max_dataset_size, len(image_pairs))]
+
     def __init__(self, opt):
         """Initialize this dataset class.
 
@@ -82,8 +130,10 @@ class FacesDataset(BaseDataset):
         """
         # save the option and dataset root
         BaseDataset.__init__(self, opt)
-        self.dir_cuhk_images = os.path.join(opt.dataroot, opt.phase, opt.cuhk_dir) # get the image directory (eg ./datasets/CUHK/train)
-        self.image_pair_paths = sorted(FacesDataset.make_cuhk_pairs_dataset(self.dir_cuhk_images, opt.max_dataset_size))
+        self.dir_cuhk_images = os.path.join(opt.dataroot, opt.cuhk_dir, opt.phase) # get the image directory (eg ./datasets/CUHK/train)
+        self.dir_iiitd_images = os.path.join(opt.dataroot, opt.iiitd_dir, opt.phase) # get the image directory (eg ./datasets/iiitd/train)
+        self.image_pair_paths = sorted(FacesDataset.make_cuhk_pairs_dataset(self.dir_cuhk_images, opt.max_dataset_size) +
+                FacesDataset.make_iiitd_pairs_dataset(self.dir_iiitd_images, opt.max_dataset_size))
         # assert(self.opt.load_size >= self.opt.crop_size)
 
         self.input_nc = 3 # if self.opt.direction == 'photo2sketch' else 1 # TODO: put this back in and get it working
