@@ -6,7 +6,7 @@ from . import networks
 class Sketch2FaceModel(BaseModel):
     """ This class adapts the pix2pix model, for learning a mapping from input images to output images given paired data.
 
-    The model training requires '--dataset_mode cuhk' dataset.
+    The model training requires '--dataset_mode faces' dataset.
     By default, it uses a '--netG unet256' U-Net generator,
     a '--netD basic' discriminator (PatchGAN),
     and a '--gan_mode' vanilla GAN loss (the cross-entropy objective used in the orignal GAN paper).
