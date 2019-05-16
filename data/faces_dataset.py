@@ -30,9 +30,11 @@ class FacesDataset(BaseDataset):
             the modified parser.
         """
         parser.add_argument('--cuhk_dir', type=str, default='cuhk', help='Sub-directory with cuhk files')
+        parser.add_argument('--colorferet_dir', type=str, default='colorferet', help='Sub-directory with colorferet files')
         parser.add_argument('--iiitd_dir', type=str, default='fill me in', help='Directory with iiitd files')
         return parser
 
+    # TODO: add a make_colorferet_pairs_dataset() function like the below, and use it
 
     @staticmethod
     def make_cuhk_pairs_dataset(dir, max_dataset_size=float("inf")):
