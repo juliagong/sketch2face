@@ -13,6 +13,7 @@ from data.base_dataset import BaseDataset, get_transform, get_params
 import torchvision.transforms as transforms
 from PIL import Image
 import re
+import random
 
 
 class FacesDataset(BaseDataset):
@@ -158,6 +159,10 @@ class FacesDataset(BaseDataset):
         photo = Image.open(photo_path).convert('RGB')             # needs to be a tensor
 
         transform_params = get_params(self.opt, sketch.size)
+        crop_start_x = random.randint(0, self.opt.load_size - self.opt.crop_size)
+        crop_start_y = random.randint(0, self.opt.load_size - self.opt.crop_size)
+        transform_params['crop_pos'] = (crop_start_x, crop_start_y)
+        transform_params['flip'] = random.choice([True, False])
         sketch_transform = get_transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
         photo_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
 
