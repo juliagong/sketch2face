@@ -30,6 +30,7 @@ class FacesDataset(BaseDataset):
             the modified parser.
         """
         parser.add_argument('--cuhk_dir', type=str, default='cuhk', help='Sub-directory with cuhk files')
+        parser.add_argument('--preprocess_dir', type=str, default='', help='Sub-directory of train/ or test/ with the files to use')
         parser.add_argument('--colorferet_dir', type=str, default='colorferet', help='Sub-directory with colorferet files')
         parser.add_argument('--iiitd_dir', type=str, default='fill me in', help='Sub-directory with iiitd files')
         return parser
@@ -160,7 +161,7 @@ class FacesDataset(BaseDataset):
         """
         # save the option and dataset root
         BaseDataset.__init__(self, opt)
-        self.dir_cuhk_images = os.path.join(opt.dataroot, opt.cuhk_dir, opt.phase) # get the image directory (eg ./datasets/CUHK/train)
+        self.dir_cuhk_images = os.path.join(opt.dataroot, opt.cuhk_dir, opt.phase, opt.preprocess_dir) # get the image directory (eg ./datasets/CUHK/train)
         self.dir_iiitd_images = os.path.join(opt.dataroot, opt.iiitd_dir, opt.phase) # get the image directory (eg ./datasets/iiitd/train)
         self.dir_colorferet_images = os.path.join(opt.dataroot, opt.colorferet_dir, opt.phase) # get the image directory (eg ./datasets/colorferet/train)
         self.image_pair_paths = sorted(FacesDataset.make_cuhk_pairs_dataset(self.dir_cuhk_images, opt.max_dataset_size) +
