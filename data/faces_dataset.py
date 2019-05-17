@@ -32,7 +32,7 @@ class FacesDataset(BaseDataset):
         parser.add_argument('--cuhk_dir', type=str, default='cuhk', help='Sub-directory with cuhk files')
         parser.add_argument('--preprocess_dir', type=str, default='', help='Sub-directory of train/ or test/ with the files to use')
         parser.add_argument('--colorferet_dir', type=str, default='colorferet', help='Sub-directory with colorferet files')
-        parser.add_argument('--iiitd_dir', type=str, default='fill me in', help='Sub-directory with iiitd files')
+        parser.add_argument('--iiitd_dir', type=str, default='iiitd', help='Sub-directory with iiitd files')
         return parser
 
     @staticmethod
