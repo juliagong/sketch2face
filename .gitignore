@@ -1,5 +1,4 @@
 # do not publish IIIT-D and ColorFERET datasets to GitHub
 datasets/iiitd
-datasets/colorferet
 
 *.pyc
