@@ -40,7 +40,7 @@ class FacesDataset(BaseDataset):
         image_pairs = []
         assert os.path.isdir(dir), '%s is not a valid directory' % dir
 
-        sketch_regex = r'(\w)2(-.*)-sz1\.jpg'
+        sketch_regex = r'(\w)2?(-.*)-sz1\.jpg'
         pic_regex = r'(\w-[^a-z]*)\.jpg'
         sketch_paths = {}
         pic_paths = {}
