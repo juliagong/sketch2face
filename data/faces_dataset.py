@@ -30,6 +30,7 @@ class FacesDataset(BaseDataset):
         """
         parser.add_argument('--cuhk_dir', type=str, default='cuhk', help='Sub-directory with cuhk files')
         parser.add_argument('--iiitd_dir', type=str, default='fill me in', help='Directory with iiitd files')
+        parser.add_argument('--colorferet_dir', type=str, default='fill me in', help='Directory with colorferet files')
         return parser
 
 
@@ -82,7 +83,7 @@ class FacesDataset(BaseDataset):
 
                 if 'semi-forensic' in path:
                     key = 'semi-forensic' + f.lower()
-                    if 'sketch' in path:
+                    if 'sketch' in path: # sketch
                         if key in pic_paths:
                             pic_path = pic_paths[key]
                             image_pairs.append((path, pic_path))
@@ -90,7 +91,7 @@ class FacesDataset(BaseDataset):
                             continue
                         sketch_paths[key] = path
                         continue
-                    else:
+                    else: # image
                         if key in sketch_paths:
                             sketch_path = sketch_paths[key]
                             image_pairs.append((sketch_path, path))
@@ -98,7 +99,7 @@ class FacesDataset(BaseDataset):
                             continue
                         pic_paths[key] = path
                 elif 'viewed' in path:
-                    if 'sketch' in path:
+                    if 'sketch' in path: # sketch
                         key = 'viewed' + f[1:].lower() if f[0] == 's' else 'viewed' + f.lower()
                         if key in pic_paths:
                             pic_path = pic_paths[key]
@@ -107,7 +108,7 @@ class FacesDataset(BaseDataset):
                             continue
                         sketch_paths[key] = path
                         continue
-                    else:
+                    else: # image
                         key = 'viewed' + f[1:].lower() if f[0] == 'p' else 'viewed' + f.lower()
                         if key in sketch_paths:
                             sketch_path = sketch_paths[key]
@@ -115,6 +116,35 @@ class FacesDataset(BaseDataset):
                             del sketch_paths[key]
                             continue
                         pic_paths[key] = path
+        return image_pairs[:min(max_dataset_size, len(image_pairs))]
+
+    def make_colorferet_pairs_dataset(dir, max_dataset_size=float("inf")):
+        image_pairs = []
+        assert os.path.isdir(dir), '%s is not a valid directory' % dir
+
+        sketch_paths = {}
+        pic_paths = {}
+
+        for root, dirs, files in sorted(os.walk(dir)):
+            for f in files:
+                path = os.path.join(root, f)
+
+                key = f[:5]
+                if 'sketch' in path: # sketch
+                    if key in pic_paths:
+                        pic_path = pic_paths[key]
+                        image_pairs.append((path, pic_path))
+                        del pic_paths[key]
+                        continue
+                    sketch_paths[key] = path
+                    continue
+                else: # image
+                    if key in sketch_paths:
+                        sketch_path = sketch_paths[key]
+                        image_pairs.append((sketch_path, path))
+                        del sketch_paths[key]
+                        continue
+                    pic_paths[key] = path
         return image_pairs[:min(max_dataset_size, len(image_pairs))]
 
     def __init__(self, opt):
@@ -132,8 +162,10 @@ class FacesDataset(BaseDataset):
         BaseDataset.__init__(self, opt)
         self.dir_cuhk_images = os.path.join(opt.dataroot, opt.cuhk_dir, opt.phase) # get the image directory (eg ./datasets/CUHK/train)
         self.dir_iiitd_images = os.path.join(opt.dataroot, opt.iiitd_dir, opt.phase) # get the image directory (eg ./datasets/iiitd/train)
+        self.dir_colorferet_images = os.path.join(opt.dataroot, opt.colorferet_dir, opt.phase) # get the image directory (eg ./datasets/colorferet/train)
         self.image_pair_paths = sorted(FacesDataset.make_cuhk_pairs_dataset(self.dir_cuhk_images, opt.max_dataset_size) +
-                FacesDataset.make_iiitd_pairs_dataset(self.dir_iiitd_images, opt.max_dataset_size))
+                FacesDataset.make_iiitd_pairs_dataset(self.dir_iiitd_images, opt.max_dataset_size) +
+                FacesDataset.make_colorferet_pairs_dataset(self.dir_colorferet_images, opt.max_dataset_size))
         # assert(self.opt.load_size >= self.opt.crop_size)
 
         self.input_nc = 3 # if self.opt.direction == 'photo2sketch' else 1 # TODO: put this back in and get it working
