@@ -40,8 +40,8 @@ class FacesDataset(BaseDataset):
         image_pairs = []
         assert os.path.isdir(dir), '%s is not a valid directory' % dir
 
-        sketch_regex = r'(\w)2(-.*)-sz1\.jpg'
-        pic_regex = r'(\w-[^a-z]*)\.jpg'
+        sketch_regex = r'(\w)[12]?(-[^a-z]*)-sz1\.jpg'
+        pic_regex =    r'(\w)[12]?(-[^a-z]*)\.jpg'
         sketch_paths = {}
         pic_paths = {}
 
@@ -62,7 +62,7 @@ class FacesDataset(BaseDataset):
 
                 match = re.search(pic_regex, fname.lower())
                 if match:
-                    key = match[1]
+                    key = match[1] + match[2]
                     if key in sketch_paths:
                         sketch_path = sketch_paths[key]
                         image_pairs.append((sketch_path, path))
