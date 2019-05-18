@@ -78,10 +78,11 @@ class Sketch2FaceModel(BaseModel):
 
         The option 'direction' can be used to swap images in domain A and domain B.
         """
-        sketch2photo = self.opt.direction == 'sketch2photo'
-        self.real_A = input['sketch' if sketch2photo else 'photo'].to(self.device)
-        self.real_B = input['photo' if sketch2photo else 'sketch'].to(self.device)
-        self.image_paths = input['sketch_path' if sketch2photo else 'photo_path']
+        assert self.opt.direction in ['sketch2face', 'face2sketch']
+        sketch2face = self.opt.direction == 'sketch2face'
+        self.real_A = input['sketch' if sketch2face else 'photo'].to(self.device)
+        self.real_B = input['photo' if sketch2face else 'sketch'].to(self.device)
+        self.image_paths = input['sketch_path' if sketch2face else 'photo_path']
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
