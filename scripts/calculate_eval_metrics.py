@@ -38,7 +38,7 @@ def make_image_path_pairs(dir):
                     image_pairs.append((path, real_path))
                     del real_paths[key]
                     continue
-                real_paths[key] = path
+                fake_paths[key] = path
                 continue
 
             match = re.search(real_regex, fname)
