@@ -23,10 +23,20 @@ def sketchify(img):
     img_array = np.asarray(img)
     gray_img = grayscale(img_array)
     inverted_img = 255-gray_img
-    blur_img = scipy.ndimage.filters.gaussian_filter(inverted_img, sigma=5)
-    final_img_array = dodge(gray_img, blur_img)
+    blur_img = scipy.ndimage.filters.gaussian_filter(inverted_img, sigma=10)
+    dodged_img = dodge(blur_img, gray_img)
+    final_img_array = sharpen_contrast(dodged_img).astype('uint8')
     final_img = Image.fromarray(final_img_array, 'L')
     return final_img
+
+def sharpen_contrast(img):
+    maxval = img.max()
+    minval = img.min()
+    range = maxval - minval
+    contrasted = (img - minval) * 255/range
+    contrasted[contrasted > 255] = 255 # just in case
+    return contrasted
+
 
 def grayscale(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
@@ -35,18 +45,16 @@ def dodge(front, back):
     result = front * 255 / (255-back)
     result[back==255] = 255
     result[result>255] = 255
-    return result.astype('uint8')
+    return result
 
 def sketchify_images(src_dir, target_dir):
-    cnt = 0
     for root, _, fnames in sorted(os.walk(src_dir)):
         for fname in fnames:
+            if fname == '.DS_Store':
+                continue
             img = Image.open(os.path.join(root, fname)).convert('RGB')
             sketch = sketchify(img)
             sketch.save(os.path.join(target_dir, fname))
-            cnt += 1
-            if cnt > 4:
-                break
 
 
 if __name__ == "__main__":
