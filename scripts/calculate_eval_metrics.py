@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 # Credit to https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/ for ideas
 """
-NMT Transformer experiment
+Calculating evaluation metrics
 
 Usage:
-    nmt_experiment.py [options]
+    calculate_eval_metrics.py [options]
                  
 Options:
     -h --help                               show this screen.
