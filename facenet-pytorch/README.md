@@ -1,4 +1,4 @@
-Source code taken directly from https://github.com/timesler/facenet-pytorch to create evaluation metric in [facenet-pytorch/FaceNet_EvalMetric.ipynb](facenet-pytorch/FaceNet_EvalMetric.ipynb)
+Source code taken directly from https://github.com/timesler/facenet-pytorch to create evaluation metric in [FaceNet_EvalMetric.ipynb](FaceNet_EvalMetric.ipynb)
 
 # Face Recognition Using Pytorch
 
