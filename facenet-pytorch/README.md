@@ -1,3 +1,5 @@
+Source code taken directly from https://github.com/timesler/facenet-pytorch to create evaluation metric in [facenet-pytorch/FaceNet_EvalMetric.ipynb](facenet-pytorch/FaceNet_EvalMetric.ipynb)
+
 # Face Recognition Using Pytorch
 
 This is a repository for Inception Resnet (V1) models in pytorch, pretrained on VGGFace2 and CASIA-Webface.
