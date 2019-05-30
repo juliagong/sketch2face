@@ -4,7 +4,7 @@
           checkpoints_dir: ./checkpoints                 
            colorferet_dir: colorferet                    
                 crop_size: 256                           
-                 cuhk_dir: CUHK                          	[default: cuhk]
+                 cuhk_dir: cuhk                          
                  dataroot: ./datasets                    	[default: None]
              dataset_mode: faces                         	[default: aligned]
                 direction: sketch2photo                  	[default: AtoB]
@@ -12,7 +12,7 @@
                     epoch: latest                        
                      eval: False                         
                   gpu_ids: 0                             
-                iiitd_dir: iiitd                         	[default: fill me in]
+                iiitd_dir: iiitd                         
                 init_gain: 0.02                          
                 init_type: normal                        
                  input_nc: 3                             
@@ -31,11 +31,12 @@
                   no_flip: False                         
                      norm: batch                         
                     ntest: inf                           
-                 num_test: 50                            
+                 num_test: 1000                          	[default: 50]
               num_threads: 4                             
                 output_nc: 3                             
                     phase: test                          
                preprocess: resize_and_crop               
+           preprocess_dir:                               
               results_dir: ./results/                    
            serial_batches: False                         
                    suffix:                               
