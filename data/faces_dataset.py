@@ -50,7 +50,7 @@ class FacesDataset(BaseDataset):
                 path = os.path.join(root, fname)
 
                 match = re.search(sketch_regex, fname.lower())
-                if match:
+                if match and 'gray' not in path:
                     key = match[1] + match[2]
                     if key in pic_paths:
                         pic_path = pic_paths[key]
@@ -61,7 +61,7 @@ class FacesDataset(BaseDataset):
                     continue
 
                 match = re.search(pic_regex, fname.lower())
-                if match:
+                if match and 'gray' not in path:
                     key = match[1] + match[2]
                     if key in sketch_paths:
                         sketch_path = sketch_paths[key]
@@ -139,7 +139,7 @@ class FacesDataset(BaseDataset):
                         continue
                     sketch_paths[key] = path
                     continue
-                else: # image
+                elif 'grayscale' not in path: # image
                     if key in sketch_paths:
                         sketch_path = sketch_paths[key]
                         image_pairs.append((sketch_path, path))
