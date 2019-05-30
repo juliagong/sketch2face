@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import init
+from .spectral_normalization import SpectralNorm
 import functools
 from torch.optim import lr_scheduler
 
@@ -28,6 +29,8 @@ def get_norm_layer(norm_type='instance'):
         norm_layer = functools.partial(nn.BatchNorm2d, affine=True, track_running_stats=True)
     elif norm_type == 'instance':
         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
+    elif norm_type == 'spectral':
+        norm_layer = SpectralNorm
     elif norm_type == 'none':
         norm_layer = lambda x: Identity()
     else:
@@ -562,21 +565,43 @@ class NLayerDiscriminator(nn.Module):
         for n in range(1, n_layers):  # gradually increase the number of filters
             nf_mult_prev = nf_mult
             nf_mult = min(2 ** n, 8)
-            sequence += [
-                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
-                norm_layer(ndf * nf_mult),
-                nn.LeakyReLU(0.2, True)
-            ]
+
+            conv2d = nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias)
+            leakyReLU = nn.LeakyReLU(0.2, True)
+
+            import pdb; pdb.set_trace()
+            if norm_layer.__name__ == 'SpectralNorm':
+                sequence += [
+                    norm_layer(conv2d),
+                    leakyReLU
+                ]
+            else:
+                sequence += [
+                    conv2d,
+                    norm_layer(ndf * nf_mult),
+                    nn.LeakyReLU(0.2, True)
+                ]
 
         nf_mult_prev = nf_mult
         nf_mult = min(2 ** n_layers, 8)
-        sequence += [
-            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
-            norm_layer(ndf * nf_mult),
-            nn.LeakyReLU(0.2, True)
-        ]
 
-        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]  # output 1 channel prediction map
+        conv2d = nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias)
+        leakyReLU = nn.LeakyReLU(0.2, True)
+        final_conv2d = nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw) # output 1 channel prediction map
+
+        if norm_layer.__name__ == 'SpectralNorm':
+            sequence += [
+                norm_layer(conv2d),
+                leakyReLU,
+                norm_layer(final_conv2d)
+            ]
+        else:
+            sequence += [
+                conv2d,
+                norm_layer(ndf * nf_mult),
+                leakyReLU,
+                final_conv2d
+            ]
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):
