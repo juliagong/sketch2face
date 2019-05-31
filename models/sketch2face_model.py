@@ -34,7 +34,7 @@ class Sketch2FaceModel(BaseModel):
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
-            parser.add_argument('--discriminator_norm', type=str, default='spectral', help='norm for discriminator.')
+            parser.add_argument('--discriminator_norm', type=str, default='spectral', help='norm for discriminator. options: [instance | batch | spectral | none]')
 
         return parser
 
