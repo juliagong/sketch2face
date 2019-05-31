@@ -63,7 +63,7 @@ class Sketch2FaceModel(BaseModel):
         
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
-                                          opt.n_layers_D, opt.discriminator_norm, opt.init_type, opt.init_gain, self.gpu_ids)
+                                          opt.n_layers_D, opt.discriminator_norm, opt.init_type, opt.init_gain, self.gpu_ids, opt.self_attn_layers_D)
 
         if self.isTrain:
             # define loss functions

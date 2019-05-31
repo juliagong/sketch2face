@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 from .spectral_normalization import SpectralNorm
+from .self_attn import SelfAttn
 import functools
 from torch.optim import lr_scheduler
 
@@ -162,7 +163,7 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     return init_net(net, init_type, init_gain, gpu_ids)
 
 
-def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[], self_attn_layer_indices=[]):
     """Create a discriminator
 
     Parameters:
@@ -196,9 +197,9 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
     norm_layer = get_norm_layer(norm_type=norm)
 
     if netD == 'basic':  # default PatchGAN classifier
-        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer)
+        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, self_attn_layer_indices=self_attn_layer_indices)
     elif netD == 'n_layers':  # more options
-        net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
+        net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer, self_attn_layer_indices=self_attn_layer_indices)
     elif netD == 'pixel':     # classify if each pixel is real or fake
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     else:
@@ -436,6 +437,12 @@ class ResnetBlock(nn.Module):
         out = x + self.conv_block(x)  # add skip connections
         return out
 
+# class SelfAttnGenerator(nn.Module):
+#     """Create a Self-Attention based generator"""
+#     pass
+
+# class SelfAttnBlock(nn.Module):
+#     pass
 
 class UnetGenerator(nn.Module):
     """Create a Unet-based generator"""
@@ -542,7 +549,7 @@ class UnetSkipConnectionBlock(nn.Module):
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
 
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, self_attn_layer_indices=[]):
         """Construct a PatchGAN discriminator
 
         Parameters:
@@ -569,7 +576,6 @@ class NLayerDiscriminator(nn.Module):
             conv2d = nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias)
             leakyReLU = nn.LeakyReLU(0.2, True)
 
-            import pdb; pdb.set_trace()
             if norm_layer.__name__ == 'SpectralNorm':
                 sequence += [
                     norm_layer(conv2d),
@@ -581,6 +587,8 @@ class NLayerDiscriminator(nn.Module):
                     norm_layer(ndf * nf_mult),
                     nn.LeakyReLU(0.2, True)
                 ]
+            if n in self_attn_layer_indices:
+                sequence.append(SelfAttn(ndf * nf_mult, nn.ReLU(), forward_outputs_attention=False, where_to_log_attention=None))
 
         nf_mult_prev = nf_mult
         nf_mult = min(2 ** n_layers, 8)
