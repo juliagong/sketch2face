@@ -1,4 +1,7 @@
 # do not publish IIIT-D and ColorFERET datasets to GitHub
 datasets/iiitd
+checkpoints/*/*
+!checkpoints/*/*.txt
+!checkpoints/finetune_iterrefine_e2e/latest_G.pth
 
 *.pyc
