@@ -73,6 +73,13 @@ if __name__ == '__main__':
     base_batchsize = opt.batch_size
     base_beta1 = opt.beta1
     base_name = opt.name
+    base_checkpoints_dir = opt.checkpoints_dir
+    original_dir_path = os.path.join(base_checkpoints_dir, base_name) 
+
+    opt.checkpoints_dir = os.path.join(opt.checkpoints_dir, '{}-gridsearch'.format(base_name))
+    if not os.path.isdir(opt.checkpoints_dir):
+        os.mkdir(opt.checkpoints_dir)
+
     for lr, batch_size, beta1 in itertools.product(opt.lrs, opt.batch_sizes, opt.beta1s):
         print('Training model with learning rate {}, batch size {}, and beta1 {} for {} epochs.'.format(lr, batch_size, beta1, opt.stop_epoch))
         opt.lr = lr
@@ -83,8 +90,7 @@ if __name__ == '__main__':
         opt.save_epoch_freq = opt.stop_epoch
 
         new_name = '{}-lr={}-bs={}-b1={}'.format(base_name, lr, batch_size, beta1)
-        original_dir_path = 'checkpoints/{}'.format(base_name)
-        new_dir_path = 'checkpoints/{}'.format(new_name)
+        new_dir_path = os.path.join(opt.checkpoints_dir, new_name)
         if os.path.isdir(original_dir_path):
             try:
                 shutil.copytree(original_dir_path, new_dir_path)
