@@ -3,5 +3,3 @@ datasets/iiitd
 
 checkpoints/*/*
 !checkpoints/*/*.txt
-!checkpoints/finetune_edges2shoes/latest_net_G.pth
-!checkpoints/finetune_edges2shoes/latest_net_D.pth
