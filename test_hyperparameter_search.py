@@ -21,6 +21,10 @@ if __name__ == '__main__':
 
     opt.checkpoints_dir = os.path.join(opt.checkpoints_dir, '{}-gridsearch'.format(base_name))
 
+    opt.results_dir = os.path.join(opt.results_dir, '{}-gridsearch'.format(base_name))
+    if not os.path.isdir(opt.results_dir):
+        os.mkdir(opt.results_dir)
+
     for lr, batch_size, beta1 in itertools.product(opt.lrs, opt.batch_sizes, opt.beta1s):
         print('Testing model with learning rate {}, batch size {}, and beta1 {}.'.format(lr, batch_size, beta1))
         opt.lr = lr
