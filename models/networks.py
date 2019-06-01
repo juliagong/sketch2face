@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 from .spectral_normalization import SpectralNorm
+from .self_attn import SelfAttn
 import functools
 from torch.optim import lr_scheduler
+import numpy as np
 
 
 ###############################################################################
@@ -119,7 +121,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[], self_attn_layer_indices=[]):
     """Create a generator
 
     Parameters:
@@ -150,19 +152,21 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     norm_layer = get_norm_layer(norm_type=norm)
 
     if netG == 'resnet_9blocks':
-        net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+        net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9, self_attn_layer_indices=self_attn_layer_indices)
     elif netG == 'resnet_6blocks':
-        net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
+        net = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6, self_attn_layer_indices=self_attn_layer_indices)
     elif netG == 'unet_128':
-        net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout, self_attn_layer_indices=self_attn_layer_indices)
     elif netG == 'unet_256':
-        net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout, self_attn_layer_indices=self_attn_layer_indices)
+    elif netG == 'self_attn_256':
+        net = SelfAttnGenerator(256)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % netG)
     return init_net(net, init_type, init_gain, gpu_ids)
 
 
-def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[], self_attn_layer_indices=[]):
     """Create a discriminator
 
     Parameters:
@@ -196,9 +200,9 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
     norm_layer = get_norm_layer(norm_type=norm)
 
     if netD == 'basic':  # default PatchGAN classifier
-        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer)
+        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, self_attn_layer_indices=self_attn_layer_indices)
     elif netD == 'n_layers':  # more options
-        net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
+        net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer, self_attn_layer_indices=self_attn_layer_indices)
     elif netD == 'pixel':     # classify if each pixel is real or fake
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     else:
@@ -315,6 +319,71 @@ def cal_gradient_penalty(netD, real_data, fake_data, device, type='mixed', const
     else:
         return 0.0, None
 
+class SelfAttnGenerator(nn.Module):
+    """
+    NOT YET WORKING
+    
+    Self-attention based generator that consists of Self-Attention applied toward the end. 
+    Adapted from https://github.com/heykeetae/Self-Attention-GAN/blob/master/sagan_models.py, which has 1k stars but seems to be buggy...? Hmm
+    TODO: Debug, and make it more configurable.
+    """
+    def __init__(self, image_size=256, z_dim=100, conv_dim=256):
+        super(SelfAttnGenerator, self).__init__()
+        self.imsize = image_size
+        layer1 = []
+        layer2 = []
+        layer3 = []
+        last = []
+        repeat_num = int(np.log2(self.imsize)) - 3
+        mult = 2 ** repeat_num
+
+        layer1.append(SpectralNorm(nn.ConvTranspose2d(z_dim, conv_dim * mult, 4)))
+        layer1.append(nn.BatchNorm2d(conv_dim * mult))
+        layer1.append(nn.ReLU())
+        self.l1 = nn.Sequential(*layer1)
+
+        curr_dim = conv_dim * mult
+
+        layer2.append(SpectralNorm(nn.ConvTranspose2d(curr_dim, int(curr_dim / 2), 4, 2, 1)))
+        layer2.append(nn.BatchNorm2d(int(curr_dim / 2)))
+        layer2.append(nn.ReLU())
+        self.l2 = nn.Sequential(*layer2)
+
+        curr_dim = int(curr_dim / 2)
+
+        layer3.append(SpectralNorm(nn.ConvTranspose2d(curr_dim, int(curr_dim / 2), 4, 2, 1)))
+        layer3.append(nn.BatchNorm2d(int(curr_dim / 2)))
+        layer3.append(nn.ReLU())
+        self.l3 = nn.Sequential(*layer3)
+        
+        self.attn1 = SelfAttn(int(curr_dim / 2), nn.ReLU(), forward_outputs_attention=True)
+
+        # if self.imsize == 64:
+        layer4 = []
+        curr_dim = int(curr_dim / 2)
+        layer4.append(SpectralNorm(nn.ConvTranspose2d(curr_dim, int(curr_dim / 2), 4, 2, 1)))
+        layer4.append(nn.BatchNorm2d(int(curr_dim / 2)))
+        layer4.append(nn.ReLU())
+        self.l4 = nn.Sequential(*layer4)
+        curr_dim = int(curr_dim / 2)
+        self.attn2 = SelfAttn(int(curr_dim / 2), nn.ReLU(), forward_outputs_attention=True)
+
+        last.append(nn.ConvTranspose2d(curr_dim, 3, 4, 2, 1))
+        last.append(nn.Tanh())
+        self.last = nn.Sequential(*last)
+
+    def forward(self, z):
+        z = z.view(z.size(0), z.size(1), 1, 1) # no idea what @heykeetae was going for here - is one of the 1's supposed to be a -1?
+        out=self.l1(z)
+        out=self.l2(out)
+        out=self.l3(out)
+        out,p1 = self.attn1(out)
+        out=self.l4(out)
+        out,p2 = self.attn2(out)
+        out=self.last(out)
+
+        return out, p1, p2
+
 
 class ResnetGenerator(nn.Module):
     """Resnet-based generator that consists of Resnet blocks between a few downsampling/upsampling operations.
@@ -322,7 +391,7 @@ class ResnetGenerator(nn.Module):
     We adapt Torch code and idea from Justin Johnson's neural style transfer project(https://github.com/jcjohnson/fast-neural-style)
     """
 
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6, padding_type='reflect'):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6, padding_type='reflect', self_attn_layer_indices=[]):
         """Construct a Resnet-based generator
 
         Parameters:
@@ -355,8 +424,10 @@ class ResnetGenerator(nn.Module):
 
         mult = 2 ** n_downsampling
         for i in range(n_blocks):       # add ResNet blocks
-
             model += [ResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
+            if i in self_attn_layer_indices:
+                model += [SelfAttn(ngf * mult, nn.ReLU(True), forward_outputs_attention=False)]
+                # Note: might want to use these instead of Resnet, rather than in addition, at these indices.
 
         for i in range(n_downsampling):  # add upsampling layers
             mult = 2 ** (n_downsampling - i)
@@ -436,11 +507,17 @@ class ResnetBlock(nn.Module):
         out = x + self.conv_block(x)  # add skip connections
         return out
 
+# class SelfAttnGenerator(nn.Module):
+#     """Create a Self-Attention based generator"""
+#     pass
+
+# class SelfAttnBlock(nn.Module):
+#     pass
 
 class UnetGenerator(nn.Module):
     """Create a Unet-based generator"""
 
-    def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
+    def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, self_attn_layer_indices=[]):
         """Construct a Unet generator
         Parameters:
             input_nc (int)  -- the number of channels in input images
@@ -455,13 +532,29 @@ class UnetGenerator(nn.Module):
         """
         super(UnetGenerator, self).__init__()
         # construct unet structure
+
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
+        if 0 in self_attn_layer_indices:
+            unet_block = nn.Sequential(unet_block, SelfAttn(ngf * 8, nn.ReLU(True), forward_outputs_attention=False))
+
         for i in range(num_downs - 5):          # add intermediate layers with ngf * 8 filters
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
+            if i+1 in self_attn_layer_indices:
+                unet_block = nn.Sequential(unet_block, SelfAttn(ngf * 8, nn.ReLU(True), forward_outputs_attention=False))
+        
         # gradually reduce the number of filters from ngf * 8 to ngf
         unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        if num_downs-4 in self_attn_layer_indices:
+            unet_block = nn.Sequential(unet_block, SelfAttn(ngf * 8, nn.ReLU(True), forward_outputs_attention=False))
+        
         unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        if num_downs-3 in self_attn_layer_indices:
+            unet_block = nn.Sequential(unet_block, SelfAttn(ngf * 4, nn.ReLU(True), forward_outputs_attention=False))
+
         unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        if num_downs-2 in self_attn_layer_indices:
+            unet_block = nn.Sequential(unet_block, SelfAttn(ngf * 2, nn.ReLU(True), forward_outputs_attention=False))
+                
         self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
 
     def forward(self, input):
@@ -542,7 +635,7 @@ class UnetSkipConnectionBlock(nn.Module):
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
 
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, self_attn_layer_indices=[]):
         """Construct a PatchGAN discriminator
 
         Parameters:
@@ -569,8 +662,7 @@ class NLayerDiscriminator(nn.Module):
             conv2d = nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias)
             leakyReLU = nn.LeakyReLU(0.2, True)
 
-            import pdb; pdb.set_trace()
-            if norm_layer.__name__ == 'SpectralNorm':
+            if type(norm_layer) != functools.partial and norm_layer.__name__ == 'SpectralNorm':
                 sequence += [
                     norm_layer(conv2d),
                     leakyReLU
@@ -581,6 +673,8 @@ class NLayerDiscriminator(nn.Module):
                     norm_layer(ndf * nf_mult),
                     nn.LeakyReLU(0.2, True)
                 ]
+            if n in self_attn_layer_indices:
+                sequence.append(SelfAttn(ndf * nf_mult, nn.ReLU(True), forward_outputs_attention=False, where_to_log_attention=None))
 
         nf_mult_prev = nf_mult
         nf_mult = min(2 ** n_layers, 8)
@@ -589,7 +683,7 @@ class NLayerDiscriminator(nn.Module):
         leakyReLU = nn.LeakyReLU(0.2, True)
         final_conv2d = nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw) # output 1 channel prediction map
 
-        if norm_layer.__name__ == 'SpectralNorm':
+        if type(norm_layer) != functools.partial and norm_layer.__name__ == 'SpectralNorm':
             sequence += [
                 norm_layer(conv2d),
                 leakyReLU,

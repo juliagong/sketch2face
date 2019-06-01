@@ -33,9 +33,7 @@ from models import create_model
 from util.visualizer import save_images
 from util import html
 
-
-if __name__ == '__main__':
-    opt = TestOptions().parse()  # get test options
+def test(opt):
     # hard-code some parameters for test
     opt.num_threads = 0   # test code only supports num_threads = 1
     opt.batch_size = 1    # test code only supports batch_size = 1
@@ -64,3 +62,8 @@ if __name__ == '__main__':
             print('processing (%04d)-th image... %s' % (i, img_path))
         save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
     webpage.save()  # save the HTML
+
+if __name__ == '__main__':
+    opt = TestOptions().parse()  # get test options
+    test(opt)
+    
