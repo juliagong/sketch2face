@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
         new_name = '{}-lr={}-bs={}-b1={}'.format(base_name, lr, batch_size, beta1)
         new_dir_path = os.path.join(opt.checkpoints_dir, new_name)
-        if os.path.isdir(original_dir_path):
+        if os.path.isdir(original_dir_path) and not os.path.isdir(new_dir_path):
             try:
                 shutil.copytree(original_dir_path, new_dir_path)
             except shutil.Error as e:
