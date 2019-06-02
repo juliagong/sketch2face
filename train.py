@@ -34,7 +34,7 @@ def train(opt):
     visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
     total_iters = 0                # the total number of training iterations
 
-    max_epochs = min(opt.max_epochs, opt.niter + opt.niter_decay + 1)
+    max_epochs = min(opt.max_epochs, opt.niter + opt.niter_decay)+1
     for epoch in range(opt.epoch_count, max_epochs):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
         epoch_start_time = time.time()  # timer for entire epoch
         iter_data_time = time.time()    # timer for data loading per iteration
