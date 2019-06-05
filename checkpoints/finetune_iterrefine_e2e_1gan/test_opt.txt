@@ -1,0 +1,47 @@
+----------------- Options ---------------
+             aspect_ratio: 1.0                           
+               batch_size: 1                             
+          checkpoints_dir: ./checkpoints                 
+           colorferet_dir: colorferet                    
+                crop_size: 256                           
+                 cuhk_dir: cuhk                          
+                 dataroot: ./datasets                    	[default: None]
+             dataset_mode: faces                         	[default: aligned]
+                direction: sketch2face                   	[default: AtoB]
+          display_winsize: 256                           
+                    epoch: latest                        
+                     eval: False                         
+                  gpu_ids: 0                             
+                iiitd_dir: iiitd                         
+                init_gain: 0.02                          
+                init_type: normal                        
+                 input_nc: 3                             
+                  isTrain: False                         	[default: None]
+                load_iter: 0                             	[default: 0]
+                load_size: 256                           
+         max_dataset_size: inf                           
+                    model: sketch2face1gan               	[default: test]
+               n_layers_D: 3                             
+                     name: finetune_iterrefine_e2e_1gan  	[default: experiment_name]
+                      ndf: 64                            
+                     netD: basic                         
+                     netG: unet_256                      
+                      ngf: 64                            
+               no_dropout: False                         
+                  no_flip: False                         
+                     norm: batch                         
+                    ntest: inf                           
+                 num_test: 1000                          	[default: 50]
+              num_threads: 4                             
+                output_nc: 3                             
+                    phase: test                          
+               preprocess: resize_and_crop               
+           preprocess_dir:                               
+              results_dir: ./results/                    
+       self_attn_layers_D: []                            
+       self_attn_layers_G: []                            
+      self_attn_layers_G2: []                            
+           serial_batches: False                         
+                   suffix:                               
+                  verbose: False                         
+----------------- End -------------------
