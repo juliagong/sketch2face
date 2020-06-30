@@ -1,7 +1,7 @@
 # sketch2face: Conditional Generative Adversarial Networks for Transforming Face Sketches into Photorealistic Images
 Generation of color photorealistic images of human faces from their corresponding grayscale sketches, building off of code from [pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix).
 
-See the paper for this project [here](https://web.stanford.edu/~jxgong/docs/sketch2face_paper_cs231n.pdf).
+See the paper for this project [here](https://web.stanford.edu/~jxgong/docs/sketch2face.pdf).
 
 ## Abstract
 In this paper, we present a conditional GAN image translation model for generating realistic human portraits from artist sketches. We modify the existing pix2pix model by introducing four variations of an iterative refinement (IR) model architecture with two generators and one discriminator, as well as a model that incorporates spectral normalization and self-attention into pix2pix. We utilize the CUHK Sketch Database and CUHK ColorFERET Database for training and evaluation. The best-performing model, both qualitatively and quantitatively, uses iterative refinement with L1 and cGAN loss on the first generator and L1 loss on the second generator, likely due to the first-stage sharp image synthesis and second-stage image smoothing. Most failure modes are reasonable and can be attributed to the small dataset size, among other factors. Future steps include masking input images to facial regions, trying other color spaces, jointly training a superresolution model, using a colorization network, learning a weighted average of the generator outputs, and gaining control of the latent space of generated faces.
